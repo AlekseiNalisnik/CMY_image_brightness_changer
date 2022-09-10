@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>CMY image brightness changer</title>
+    </head>
+
+    <body>
+        <canvas id="canvas_id" width="500" height="350" style="border: 1px solid black;"></canvas>
+
+        <br />
+        <br />
+        <label>Все каналы: (%)</label>
+        <input type="number" id="All" min="0" max="100" value="0" />
+
+        <br />
+        <label>Канал C: (%)</label>
+        <input type="number" id="C" min="0" max="100" value="0" />
+
+        <br />
+        <label>Канал M: (%)</label>
+        <input type="number" id="M" min="0" max="100" value="0" />
+
+        <br />
+        <label>Канал Y: (%)</label>
+        <input type="number" id="Y" min="0" max="100" value="0" />
+
+        <br />
+        <br />
+        <button id="regulate">Регулировать</button>
+
+        <script>
+            // Чтобы изменить яркость, нужно прибавить или отнять от каждой компоненты цвета какое-либо число.
+            // Чтобы яркость увеличивалась/уменьшалась равномерно, отнимать следует одно и тоже число.
+            const RGB_LIMIT = 255;
+            const RGBA_REPRESENTATION_COUNTER = 4;
+
+            const img = new Image();
+            img.src = './image_1.jpg';
+
+            const canvas = document.getElementById('canvas_id');
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const context = canvas.getContext('2d');
+
+            let INITIAL_IMG_ID = null;
+            let INITIAL_IMG_PIXELS = null;
+            img.onload = function() {
+                context.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+                
+                INITIAL_IMG_ID = context.getImageData(0, 0, canvasWidth, canvasHeight);
+                INITIAL_IMG_PIXELS = INITIAL_IMG_ID.data;
+            };
+
+            const Regulate = document.getElementById('regulate');
+            Regulate.onclick = () => {
+                const CValue = document.getElementById('C').value;
+                const MValue = document.getElementById('M').value;
+                const YValue = document.getElementById('Y').value;
+
+                changeBrightness(...convertCMYToRGB(CValue, MValue, YValue));
+            };
+            const All = document.getElementById('All');
+            All.oninput = () => {
+                const allValue = All.value;
+
+                const CValue = document.getElementById('C').value = allValue;
+                const MValue = document.getElementById('M').value = allValue;
+                const YValue = document.getElementById('Y').value = allValue;
+            };
+
+            const changeBrightness = (brightnessValueR, brightnessValueG, brightnessValueB) => {
+                const imgId = context.getImageData(0, 0, canvasWidth, canvasHeight);
+                const imgPixels = imgId.data;
+                console.log('PIXELS BEFORE - ', JSON.parse(JSON.stringify(imgPixels)));
+
+                // Используем в качестве инкремента именно 4 потому, что попиксельное деление (R, G, B, A - 4 штуки)
+                for (let i = 0; i < imgPixels.length; i += RGBA_REPRESENTATION_COUNTER) {
+                    // Вычитать именно из 255 нужно, так как (0, 0, 0) в CMY - это (255, 255, 255) в RGB
+                    imgPixels[i] = INITIAL_IMG_PIXELS[i] + (RGB_LIMIT - +brightnessValueR);
+                    imgPixels[i + 1] = INITIAL_IMG_PIXELS[i + 1] + (RGB_LIMIT - +brightnessValueG);
+                    imgPixels[i + 2] = INITIAL_IMG_PIXELS[i + 2] + (RGB_LIMIT - +brightnessValueB);
+                }
+
+                context.putImageData(imgId, 0, 0);
+                console.log('PIXELS AFTER - ', JSON.parse(JSON.stringify(imgPixels)));
+            };
+
+            const convertCMYToRGB = (C, M, Y) => {
+                const MAX_PERCENT = 100;
+
+                const R = Math.round(RGB_LIMIT * (MAX_PERCENT - C) / MAX_PERCENT);
+                const G = Math.round(RGB_LIMIT * (MAX_PERCENT - M) / MAX_PERCENT);
+                const B = Math.round(RGB_LIMIT * (MAX_PERCENT - Y) / MAX_PERCENT);
+                console.log('RGB - ', [R, G, B]);
+
+                return [R, G, B];
+            };
+        </script>
+    </body>
+</html>
